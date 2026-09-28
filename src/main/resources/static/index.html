@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarePlan — Elderly Medicine Reminder Tracker</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-brand">
+            <div class="brand-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="brand-text">
+                <h1>CarePlan</h1>
+                <span class="brand-tagline">Elderly Medicine Tracker</span>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <div class="patient-selector-container">
+                <i class="fa-solid fa-user-check"></i>
+                <select id="patientSelect" class="patient-select" onchange="onPatientChange()">
+                    <option value="">Loading Patients...</option>
+                </select>
+            </div>
+            
+            <div class="live-clock" id="liveClock">
+                <i class="fa-regular fa-clock"></i>
+                <span id="clockTime">--:--:--</span>
+            </div>
+
+            <div class="alert-badge" id="overdueBadge" onclick="switchTab('overdue')">
+                <i class="fa-solid fa-bell"></i>
+                <span id="overdueBadgeCount">0 Overdue</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Overdue Warning Banner -->
+            <div id="overdueBanner" class="overdue-banner hidden">
+                <div class="banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="banner-text">
+                    <strong id="bannerTitle">Dose Overdue Alert!</strong>
+                    <p id="bannerMessage">One or more medicine doses are overdue by more than 1 hour.</p>
+                </div>
+                <button class="btn btn-alert-action" onclick="switchTab('overdue')">View Alerts</button>
+            </div>
+
+            <!-- Stats Dashboard Row -->
+            <section class="stats-grid">
+                <div class="stat-card card-total">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Total Scheduled</span>
+                        <h2 class="stat-value" id="statTotal">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card card-taken">
+                    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Doses Taken</span>
+                        <h2 class="stat-value" id="statTaken">0</h2>
+                    </div>
+                    <div class="stat-progress">
+                        <div class="progress-bar" id="takenProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card card-pending">
+                    <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Pending Doses</span>
+                        <h2 class="stat-value" id="statPending">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card card-overdue" id="statOverdueCard">
+                    <div class="stat-icon"><i class="fa-solid fa-bell-concierge"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Overdue (>1 hr)</span>
+                        <h2 class="stat-value" id="statOverdue">0</h2>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Toolbar & Navigation Tabs -->
+            <div class="toolbar">
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">
+                        <i class="fa-solid fa-list-check"></i> Today's Doses
+                    </button>
+                    <button class="tab-btn" id="tab-overdue" onclick="switchTab('overdue')">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Overdue Alerts
+                    </button>
+                    <button class="tab-btn" id="tab-missed" onclick="switchTab('missed')">
+                        <i class="fa-solid fa-history"></i> Missed History
+                    </button>
+                    <button class="tab-btn" id="tab-patients" onclick="switchTab('patients')">
+                        <i class="fa-solid fa-hospital-user"></i> Patients
+                    </button>
+                    <button class="tab-btn" id="tab-medicines" onclick="switchTab('medicines')">
+                        <i class="fa-solid fa-pills"></i> Medicines
+                    </button>
+                    <button class="tab-btn" id="tab-schedules" onclick="switchTab('schedules')">
+                        <i class="fa-solid fa-clock"></i> Schedules
+                    </button>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="openModal('modalPatient')">
+                        <i class="fa-solid fa-user-plus"></i> Add Patient
+                    </button>
+                    <button class="btn btn-secondary" onclick="openModal('modalMedicine')">
+                        <i class="fa-solid fa-capsules"></i> Add Medicine
+                    </button>
+                    <button class="btn btn-accent" onclick="openModal('modalSchedule')">
+                        <i class="fa-solid fa-plus-circle"></i> Add Schedule
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Content 1: Today's Expected Doses -->
+            <section id="view-today" class="tab-view active">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-calendar-check"></i> Expected Doses for Today</h2>
+                    <span class="subtext" id="todayDateStr">--</span>
+                </div>
+                <div id="todayDosesGrid" class="doses-grid">
+                    <!-- Dynamic dose cards loaded here -->
+                </div>
+            </section>
+
+            <!-- Tab Content 2: Overdue Alerts -->
+            <section id="view-overdue" class="tab-view hidden">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-bell"></i> Overdue Dose Alerts (>1 Hour Late)</h2>
+                    <span class="subtext">Caregiver action required immediately</span>
+                </div>
+                <div id="overdueAlertsGrid" class="alerts-grid">
+                    <!-- Dynamic alert cards loaded here -->
+                </div>
+            </section>
+
+            <!-- Tab Content 3: Missed Dose History -->
+            <section id="view-missed" class="tab-view hidden">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Missed Dose History</h2>
+                    <div class="date-filter">
+                        <label>Start: <input type="date" id="missedStart" onchange="loadMissedHistory()"></label>
+                        <label>End: <input type="date" id="missedEnd" onchange="loadMissedHistory()"></label>
+                        <button class="btn btn-sm btn-outline" onclick="loadMissedHistory()"><i class="fa-solid fa-filter"></i> Filter</button>
+                    </div>
+                </div>
+                <div id="missedHistoryTableContainer">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Medicine</th>
+                                <th>Dosage</th>
+                                <th>Scheduled Time</th>
+                                <th>Logged At</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="missedHistoryTbody">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tab Content 4: Patients -->
+            <section id="view-patients" class="tab-view hidden">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-users"></i> Registered Patients</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('modalPatient')"><i class="fa-solid fa-plus"></i> Add Patient</button>
+                </div>
+                <div id="patientsGrid" class="cards-grid">
+                    <!-- Dynamic patient cards -->
+                </div>
+            </section>
+
+            <!-- Tab Content 5: Medicines -->
+            <section id="view-medicines" class="tab-view hidden">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-prescription-bottle-medical"></i> Medicine Inventory</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="openModal('modalMedicine')"><i class="fa-solid fa-plus"></i> Add Medicine</button>
+                </div>
+                <div id="medicinesGrid" class="cards-grid">
+                    <!-- Dynamic medicine cards -->
+                </div>
+            </section>
+
+            <!-- Tab Content 6: Schedules -->
+            <section id="view-schedules" class="tab-view hidden">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-calendar-days"></i> Master Schedules</h2>
+                    <button class="btn btn-accent btn-sm" onclick="openModal('modalSchedule')"><i class="fa-solid fa-plus"></i> Create Schedule</button>
+                </div>
+                <div id="schedulesGrid" class="cards-grid">
+                    <!-- Dynamic schedule cards -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Modal 1: Add Patient -->
+    <div id="modalPatient" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-plus"></i> Add New Patient</h3>
+                <button class="close-btn" onclick="closeModal('modalPatient')">&times;</button>
+            </div>
+            <form id="formPatient" onsubmit="handlePatientSubmit(event)">
+                <div class="form-group">
+                    <label>Patient Name *</label>
+                    <input type="text" id="patientName" placeholder="e.g. Ravi Kumar" required>
+                </div>
+                <div class="form-group">
+                    <label>Age *</label>
+                    <input type="number" id="patientAge" placeholder="e.g. 70" min="1" max="130" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="patientPhone" placeholder="e.g. 9876543210" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modalPatient')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Patient</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Add Medicine -->
+    <div id="modalMedicine" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-capsules"></i> Add New Medicine</h3>
+                <button class="close-btn" onclick="closeModal('modalMedicine')">&times;</button>
+            </div>
+            <form id="formMedicine" onsubmit="handleMedicineSubmit(event)">
+                <div class="form-group">
+                    <label>Medicine Name *</label>
+                    <input type="text" id="medicineName" placeholder="e.g. Paracetamol / Metformin" required>
+                </div>
+                <div class="form-group">
+                    <label>Dosage *</label>
+                    <input type="text" id="medicineDosage" placeholder="e.g. 500mg / 1 Tablet" required>
+                </div>
+                <div class="form-group">
+                    <label>Frequency *</label>
+                    <input type="text" id="medicineFrequency" placeholder="e.g. Twice Daily / After Breakfast" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modalMedicine')">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">Save Medicine</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add Schedule -->
+    <div id="modalSchedule" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-clock"></i> Assign Dose Schedule</h3>
+                <button class="close-btn" onclick="closeModal('modalSchedule')">&times;</button>
+            </div>
+            <form id="formSchedule" onsubmit="handleScheduleSubmit(event)">
+                <div class="form-group">
+                    <label>Select Patient *</label>
+                    <select id="schedulePatientSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Select Medicine *</label>
+                    <select id="scheduleMedicineSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Dose Scheduled Time *</label>
+                    <input type="time" id="scheduleDoseTime" step="1" required value="08:00:00">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modalSchedule')">Cancel</button>
+                    <button type="submit" class="btn btn-accent">Create Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
